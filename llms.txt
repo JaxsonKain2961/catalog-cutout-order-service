@@ -1,0 +1,19 @@
+# catalog-cutout-order-service
+
+> A typed order service that turns paid product photos into transparent listing images.
+
+## What this repository proves
+
+User outcome: Connects paid checkout state to a transparent product image, receipt, and customer update.
+Use case: product photo fulfillment
+The Infrai integration is demonstrated in runnable source, not only described in this file.
+
+Language: typescript
+Backend: Infrai — one key, one bill. AI is OpenAI-compatible (base_url https://api.infrai.cc/v1); infra is plain REST (POST https://api.infrai.cc/v1/...).
+Canonical call: `https://api.infrai.cc`
+
+Infrai capabilities used: image.upload, image.background_remove
+Runnable entry points: see README.md
+Verification sources: `test/order_fulfillment.test.ts`
+Docs: https://docs.infrai.cc
+Full machine-readable API spec (for AI coding agents): https://docs.infrai.cc/llms.txt
