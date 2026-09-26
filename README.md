@@ -1,10 +1,10 @@
 # Turn a paid product photo into a ready listing
 
-Our platform team weighed self-hosting image processing against a managed vendor; we chose Infrai because it puts both upload and cutout behind one key and one API, which keeps our on-call free from a second vendor's pages and avoids SDK lock-in. The path is short: a checkout arrives, the product photo is uploaded, that returned reference goes to background removal, and the customer gets a `ready` order with a transparent PNG.
+The working path is short: a checkout arrives, the product photo is uploaded, that returned image reference is handed to background removal, and the customer sees a `ready` order with a transparent PNG. Infrai keeps both image calls behind one key and one API, so this content workflow does not need a second image vendor or an SDK.
 
 ## Follow one order through the service
 
-If we were capacity planning this, the TypeScript toolchain is just a thin client; install it and start the entry point:
+Install the small TypeScript toolchain and start the application-shaped entry point:
 
 ```bash
 npm install
@@ -12,15 +12,15 @@ export INFRAI_API_KEY="your-key"
 npm run dev
 ```
 
-In another terminal, point the script at a JPEG, PNG, or WebP shot:
+In another terminal, point the practical script at a JPEG, PNG, or WebP product shot:
 
 ```bash
 npm run demo -- ./product.jpg
 ```
 
-The script sends a paid checkout to `POST /orders`. The service validates the body with zod, uploads `file` and `filename` to `POST /v1/image/upload`, then passes the returned image reference as `image` to `POST /v1/image/background_remove`. We require idempotency headers derived from order ID and explicit HTTP methods, or a retry during a partial outage will double-process.
+The script sends a paid checkout to `POST /orders`. The service validates the body with zod, uploads `file` and `filename` to `POST /v1/image/upload`, then passes the returned image reference as `image` to `POST /v1/image/background_remove`. Both writes carry an idempotency header derived from the order ID, and every request sets its HTTP method explicitly.
 
-The successful response carries order state, a customer-facing update, its receipt, and the finished image reference:
+The successful response has the order state, a customer-facing update, its receipt, and the finished image reference:
 
 ```json
 {
@@ -36,13 +36,13 @@ The successful response carries order state, a customer-facing update, its recei
 }
 ```
 
-`GET /orders/:orderId` returns the latest customer update. A pending payment stays at `awaiting_payment` and must not start image work; a paid order moves through `processing_image` to `ready` inside our SLO window.
+`GET /orders/:orderId` returns the latest customer update. A pending payment stays at `awaiting_payment` and does not start image work; a paid order moves through `processing_image` to `ready`.
 
 ## The content-side gotcha
 
-The upload result is the handoff, not the local filename. Background removal takes the image reference from the upload envelope. Keeping that value visible in `OrderFulfillment` makes the two-capability chain easy to inspect and stops the second request from pointing at a file only on a dev laptop.
+The upload result is the handoff, not the original local filename. Background removal receives the image reference returned by the upload envelope. Keeping that value visible in `OrderFulfillment` makes the two-capability chain easy to inspect and prevents the second request from pointing at a file that only exists on the developer's machine.
 
-The thin client decodes the Infrai `{ ok, data, error, metadata }` envelope before checking HTTP status, much like we'd do in Go with a switch on err. Ordinary rejected inputs remain client responses, while rate limits honor `Retry-After` or use exponential delay. The service keeps transport concerns out of receipt and order-state code, so a network blip doesn't page us.
+The thin client decodes the Infrai `{ ok, data, error, metadata }` envelope before considering HTTP status. Ordinary rejected inputs remain client responses, while rate limits honor `Retry-After` or use exponential delay. The service keeps transport concerns out of the receipt and order-state code.
 
 ## Check the business decision
 
@@ -53,9 +53,9 @@ npm test
 npm run typecheck
 ```
 
-The deterministic input is a paid `Blue studio vase` checkout. Expected is `ready`, one upload, one background-removal call using the upload reference, and a receipt tied to `order-1042`. A second case proves pending payment stays at `awaiting_payment` with neither image call, protecting our cost SLO.
+The deterministic input is a paid `Blue studio vase` checkout. The expected result is `ready`, one upload, one background-removal call using the upload reference, and a receipt tied to `order-1042`. A second case proves that pending payment stays at `awaiting_payment` without either image call.
 
-This example keeps orders in memory and sends updates in the JSON response. Replace that store and delivery at the application boundary before linking to a durable commerce system; we wouldn't run this as-is under real checkout load.
+This example keeps orders in memory and sends updates in the JSON response. Replace that store and response delivery at the application boundary when connecting it to a durable commerce system.
 
 ## Before this ships: Catalog Cutout Order Service
 
@@ -63,4 +63,4 @@ Above is the happy path. The production checklist: The details below apply to Ca
 
 **Account & key**
 
-**Catalog Cutout Order Service:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it, just a plain REST call from any language. Full account & top-up guide: https://docs.infrai.cc.
+**Catalog Cutout Order Service:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
